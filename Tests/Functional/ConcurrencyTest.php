@@ -100,13 +100,13 @@ CONFIG
             /** @var EntityManager $em */
             $em = self::$kernel->getContainer()->get('doctrine')->getManager();
 
-            $jobCount = $em->createQuery("SELECT COUNT(j) FROM ".Job::class." j WHERE j.state IN (:nonFinalStates)")
+            $jobCount = $em->createQuery("SELECT COUNT(j) FROM JMS\JobQueueBundle\Entity\Job j WHERE j.state IN (:nonFinalStates)")
                 ->setParameter('nonFinalStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
                 ->getSingleScalarResult();
         } while ($jobCount > 0 && time() - $start < $maxRuntime);
 
         if ($jobCount > 0) {
-            $jobs = $em->createQuery("SELECT j FROM ".Job::class." j WHERE j.state IN (:nonFinalStates)")
+            $jobs = $em->createQuery("SELECT j FROM JMS\JobQueueBundle\Entity\Job j WHERE j.state IN (:nonFinalStates)")
                 ->setParameter('nonFinalStates', array(Job::STATE_RUNNING, Job::STATE_NEW, Job::STATE_PENDING))
                 ->getResult();
 
