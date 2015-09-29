@@ -41,7 +41,7 @@ class CleanUpCommand extends ContainerAwareCommand
     private function collectStaleJobs(EntityManager $em)
     {
         /** @var JobRepository $repository */
-        $repository = $em->getRepository(Job::class);
+        $repository = $em->getRepository('JMS\JobQueueBundle\Entity\Job');
 
         foreach ($this->findStaleJobs($em) as $job) {
             if ($job->isRetried()) {
@@ -116,7 +116,7 @@ class CleanUpCommand extends ContainerAwareCommand
         // incoming dependencies to failed if that has not been done already.
         if ( ! $job->isFinished()) {
             /** @var JobRepository $repository */
-            $repository = $em->getRepository(Job::class);
+            $repository = $em->getRepository('JMS\JobQueueBundle\Entity\Job');
             foreach ($repository->findIncomingDependencies($job) as $incomingDep) {
                 if ($incomingDep->isInFinalState()) {
                     continue;
