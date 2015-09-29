@@ -57,6 +57,7 @@ class CleanUpCommand extends ContainerAwareCommand
      */
     private function findStaleJobs(EntityManager $em)
     {
+        $jobs = array();
         $excludedIds = array(-1);
 
         do {
@@ -75,9 +76,11 @@ class CleanUpCommand extends ContainerAwareCommand
             if ($job !== null) {
                 $excludedIds[] = $job->getId();
 
-                yield $job;
+                $jobs[] = $job;
             }
         } while ($job !== null);
+        
+        return $jobs;
     }
 
     private function cleanUpExpiredJobs(EntityManager $em, Connection $con, InputInterface $input)
@@ -136,6 +139,8 @@ class CleanUpCommand extends ContainerAwareCommand
 
     private function findExpiredJobs(EntityManager $em, InputInterface $input)
     {
+        $jobs = array();
+
         $succeededJobs = function(array $excludedIds) use ($em, $input) {
             return $em->createQuery("SELECT j FROM JMSJobQueueBundle:Job j WHERE j.closedAt < :maxRetentionTime AND j.originalJob IS NULL AND j.state = :succeeded AND j.id NOT IN (:excludedIds)")
                 ->setParameter('maxRetentionTime', new \DateTime('-'.$input->getOption('max-retention-succeeded')))
@@ -145,7 +150,7 @@ class CleanUpCommand extends ContainerAwareCommand
                 ->getResult();
         };
         foreach ($this->whileResults($succeededJobs) as $job) {
-            yield $job;
+            $jobs[] = $job;
         }
 
         $finishedJobs = function(array $excludedIds) use ($em, $input) {
@@ -156,7 +161,7 @@ class CleanUpCommand extends ContainerAwareCommand
                 ->getResult();
         };
         foreach ($this->whileResults($finishedJobs) as $job) {
-            yield $job;
+            $jobs[] = $job;
         }
 
         $canceledJobs = function(array $excludedIds) use ($em, $input) {
@@ -168,12 +173,15 @@ class CleanUpCommand extends ContainerAwareCommand
                 ->getResult();
         };
         foreach ($this->whileResults($canceledJobs) as $job) {
-            yield $job;
+            $jobs[] = $job;
         }
+        
+        return $jobs;
     }
 
     private function whileResults(callable $resultProducer)
     {
+        $jobsr = array();
         $excludedIds = array(-1);
 
         do {
@@ -181,8 +189,9 @@ class CleanUpCommand extends ContainerAwareCommand
             $jobs = $resultProducer($excludedIds);
             foreach ($jobs as $job) {
                 $excludedIds[] = $job->getId();
-                yield $job;
+                $jobsr[] = $job;
             }
         } while ( ! empty($jobs));
+        return $jobsr;
     }
 }
